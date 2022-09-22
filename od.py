@@ -54,116 +54,119 @@ def pdf_merge(path_in):
     merger.write(f"{path_in}СЭК.421736.03.46.{tp}.ЭД.pdf")
     merger.close()
 
-# Считываем данные
+# Заполняем тэги в документах и сохраняем в итоговой папке
 
-wb = xl.load_workbook(f"{PATH_XCL}{XCL_NAMES}", read_only=True)
-sheets = wb.sheetnames
-ws=wb[sheets[1]]
-tp_info = []
-tp_list = []
-for row in ws.iter_rows():
-    tp_list.append(row[2].value)
-tp_list = tp_list[1:]
+TP = [257, 371, 3068, 3172, 3034, 1007, 3055, 2327, 3280, 1879, 516, 3052, 3240, 3087, 2275, 1120]
+for tp in TP:
+    wb = xl.load_workbook(f"{PATH_XCL}{XCL_NAMES}", read_only=True)
+    sheets = wb.sheetnames
+    ws=wb[sheets[1]]
+    tp_info = []
+    tp_list = []
+    for row in ws.iter_rows():
+        tp_list.append(row[2].value)
+    tp_list = tp_list[1:]
+    for row in ws.iter_rows():
+        for cell in row[:3]:
+            if cell.value == tp:
+                for cell in row:
+                    if cell.value == None:
+                        tp_info.append("")
+                    else:
+                        tp_info.append(cell.value)
 
-#Перебираем ТП по списку:
+    ws=wb[sheets[0]]
+    inst_info = []
+    for row in ws.iter_rows():
+        for cell in row:
+            if cell.value == tp:
+                inst_info.append([c.value if c.value != None else "" for c in row])
+    ws=wb[sheets[2]]
+    uspd = []
+    for row in ws.iter_rows():
+        for cell in row:
+            if cell.value == tp:
+                uspd.append([c.value for c in row])
+    inst_date = []
+    for row in inst_info[1:]:
+            inst_date.append(datetime.datetime.strptime(row[16],"%d.%m.%Y").date())
 
-tp=1113
+    end_inst = max(inst_date).strftime("%d.%m.%Y") if datetime.datetime.weekday(max(inst_date))+1 not in [6,7]  \
+        else (max(inst_date)+datetime.timedelta(days=2)).strftime("%d.%m.%Y") if datetime.datetime.weekday(max(inst_date))+1 == 6 \
+        else (max(inst_date)+datetime.timedelta(days=1)).strftime("%d.%m.%Y")
 
-for row in ws.iter_rows():
-    for cell in row:
-        if cell.value == tp:
-            for cell in row:
-                if cell.value == None:
-                    tp_info.append("")
-                else:
-                    tp_info.append(cell.value)
+    # Генерим таблицу 2
 
-ws=wb[sheets[0]]
-inst_info = []
-for row in ws.iter_rows():
-    for cell in row:
-        if cell.value == tp:
-            inst_info.append([c.value if c.value != None else "" for c in row])
-ws=wb[sheets[2]]
-uspd = []
-for row in ws.iter_rows():
-    for cell in row:
-        if cell.value == tp:
-            uspd.append([c.value for c in row])
-
-# Генерим таблицу 2
-
-table_02 = []
-for i in range(len(inst_info)):
+    table_02 = []
+    for i in range(len(inst_info)):
+        table_02.append({
+            'Index': i+1,
+            'Tp': f"ТП-{inst_info[i][1]}",
+            'Serial': inst_info[i][13],
+            'TypePwr': inst_info[i][12],
+            'TypeU': inst_info[i][3]
+            })
     table_02.append({
-        'Index': i+1,
+        'Index': len(table_02)+1,
         'Tp': f"ТП-{inst_info[i][1]}",
-        'Serial': inst_info[i][13],
-        'TypePwr': inst_info[i][12],
-        'TypeU': inst_info[i][3]
+        'Serial': f"{uspd[0][2]}, IP={tp_info[4]}",
+        'TypePwr': uspd[0][1],
+        'TypeU': "-"
         })
-table_02.append({
-    'Index': len(table_02)+1,
-    'Tp': f"ТП-{inst_info[i][1]}",
-    'Serial': f"{uspd[0][2]}, IP={tp_info[4]}",
-    'TypePwr': uspd[0][1],
-    'TypeU': "-"
-    })
-table_02.append({
-    'Index': len(table_02)+1,
-    'Tp': f"ТП-{inst_info[i][1]}",
-    'Serial': f"{uspd[0][4]}",
-    'TypePwr': uspd[0][3],
-    'TypeU': "-"
-    })
-
-# Генерим таблицу 3
-
-table_03 = []
-for i in range(len(inst_info)):
-    table_03.append({
-        'Index': i+1,
+    table_02.append({
+        'Index': len(table_02)+1,
         'Tp': f"ТП-{inst_info[i][1]}",
-        'Res': "Истринский РЭС",
-        'City': inst_info[i][4],
-        'Get_EU' : "",
-        'Name': inst_info[i][9],
-        'Street': inst_info[i][5],
-        'Home': inst_info[i][6],
-        'Flat': inst_info[i][7],
-        'Phone': "",
-        'Ls' : inst_info[i][8],
-        'TypePwr': inst_info[i][12],
-        'Serial': inst_info[i][13],
-        'Plomb' : inst_info[i][15],
-        'TypePwrOld' : inst_info[i][19],
-        'SerialOld' : inst_info[i][18]
+        'Serial': f"{uspd[0][4]}",
+        'TypePwr': uspd[0][3],
+        'TypeU': "-"
         })
 
-# Заполняем шаблоны
+    # Генерим таблицу 3
 
-for i in PATTERN_NAMES:
-    # Создание директории ТП (при отсутствии)
-    if not os.path.isdir(f'{PATH_OUT}\ТП-{tp}'):
-        os.mkdir(f'{PATH_OUT}\ТП-{tp}')
-    doc = DocxTemplate(f"{PATTERN_PATH}{i}")
-    context = {"n_tp" : tp_info[2],
-               "city" : tp_info[7],
-               "table_03" : table_03,
-               "table_02" : table_02
-               }
-    doc.render(context)
-    doc.save(f"{PATH_OUT}ТП-{tp}\{i}")
+    table_03 = []
+    for i in range(len(inst_info)):
+        table_03.append({
+            'Index': i+1,
+            'Tp': f"ТП-{inst_info[i][1]}",
+            'Res': "Истринский РЭС",
+            'City': inst_info[i][4],
+            'Get_EU' : end_inst,
+            'Name': inst_info[i][9],
+            'Street': inst_info[i][5],
+            'Home': inst_info[i][6],
+            'Flat': inst_info[i][7],
+            'Phone': "",
+            'Ls' : inst_info[i][8],
+            'TypePwr': inst_info[i][12],
+            'Serial': inst_info[i][13],
+            'Plomb' : inst_info[i][15],
+            'TypePwrOld' : inst_info[i][19],
+            'SerialOld' : inst_info[i][18]
+            })
 
-print("done_doc")
+    # Заполняем шаблоны
 
-# Конвертируем в PDF
+    for i in PATTERN_NAMES:
+        # Создание директории ТП (при отсутствии)
+        if not os.path.isdir(f'{PATH_OUT}\ТП-{tp}'):
+            os.mkdir(f'{PATH_OUT}\ТП-{tp}')
+        doc = DocxTemplate(f"{PATTERN_PATH}{i}")
+        context = {"n_tp" : tp_info[2],
+                   "city" : tp_info[7],
+                   "table_03" : table_03,
+                   "table_02" : table_02
+                   }
+        doc.render(context)
+        doc.save(f"{PATH_OUT}ТП-{tp}\{i}")
 
-file_convert_docx_pdf(f"{PATH_OUT}ТП-{tp}\\")
+    print(f"ТП-{tp}_done_doc")
 
-# Объединяем в один PDF файл
+    # Конвертируем в PDF
 
-pdf_merge(f"{PATH_OUT}\ТП-{tp}\\")
-print("done_merge")
+    file_convert_docx_pdf(f"{PATH_OUT}ТП-{tp}\\")
 
+    # Объединяем в один PDF файл
 
+    pdf_merge(f"{PATH_OUT}\ТП-{tp}\\")
+    print(f"ТП-{tp}_done_merge")
+print(f"Эксплутационная документация по ТП-{tp} сделана")
