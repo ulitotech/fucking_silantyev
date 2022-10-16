@@ -56,7 +56,7 @@ def pdf_merge(path_in):
 
 # Заполняем тэги в документах и сохраняем в итоговой папке
 
-TP = [257, 371, 3068, 3172, 3034, 1007, 3055, 2327, 3280, 1879, 516, 3052, 3240, 3087, 2275, 1120]
+TP = [2262]
 for tp in TP:
     wb = xl.load_workbook(f"{PATH_XCL}{XCL_NAMES}", read_only=True)
     sheets = wb.sheetnames
@@ -88,7 +88,7 @@ for tp in TP:
             if cell.value == tp:
                 uspd.append([c.value for c in row])
     inst_date = []
-    for row in inst_info[1:]:
+    for row in inst_info[:]:
             inst_date.append(datetime.datetime.strptime(row[16],"%d.%m.%Y").date())
 
     end_inst = max(inst_date).strftime("%d.%m.%Y") if datetime.datetime.weekday(max(inst_date))+1 not in [6,7]  \
@@ -169,4 +169,4 @@ for tp in TP:
 
     pdf_merge(f"{PATH_OUT}\ТП-{tp}\\")
     print(f"ТП-{tp}_done_merge")
-print(f"Эксплутационная документация по ТП-{tp} сделана")
+print(f"Эксплутационная документация по всем ТП сделана")

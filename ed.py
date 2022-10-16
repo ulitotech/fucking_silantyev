@@ -64,7 +64,7 @@ def pdf_merge(path_in):
 # Заполняем тэги в документах и сохраняем в итоговой папке
 
 
-TP = [1120]
+TP = [2262]
 for tp in TP:
     wb = xl.load_workbook(f"{PATH_XCL}\{XCL_NAMES[0]}", read_only=True)
     sheets = wb.sheetnames
@@ -91,10 +91,13 @@ for tp in TP:
             if cell.value == tp:
                 uspd.append([c.value for c in row])
     inst_date = []
-    for row in inst_info[1:]:
+    for row in inst_info[:]:
             inst_date.append(datetime.datetime.strptime(row[16],"%d.%m.%Y").date())
     beg_inst = min(inst_date).strftime("%d.%m.%Y")
-    end_inst = max(inst_date).strftime("%d.%m.%Y")
+    if len(inst_date) == 1:
+        end_inst = beg_inst
+    else:
+        end_inst = max(inst_date).strftime("%d.%m.%Y")
     ttr_1_ib = ttr_1_iz = ttr_1_nb = ttr_1_nz = ttr_3_ib = ttr_3_iz = ttr_3_nb = ttr_3_nz = ttr_1_ib_i = ttr_1_iz_i =\
         ttr_1_nb_i = ttr_1_nz_i = ttr_3_ib_i = ttr_3_iz_i = ttr_3_nb_i = ttr_3_nz_i = 0
 
@@ -246,7 +249,8 @@ for tp in TP:
 
     # Генерим таблицу 12
 
-    NOT_BALANCE = float(tp_info[-3])
+    NOT_BALANCE = float(tp_info[-4])
+
 
     passport = []
     table_12 = []
@@ -257,8 +261,7 @@ for tp in TP:
         # passport.append([c.value if c.value != None else "" for c in row])
         if row[0].value != None and row[0].value != "":
             passport.append([c.value if c.value != None else "" for c in row])
-    print(passport)
-    breakpoint()
+
     for i in range(1,len(passport)):
         table_12.append({'Address': passport[i][0],
                          'Type': passport[i][1],
@@ -286,7 +289,7 @@ for tp in TP:
             journal_row.append(100)
         journal_row.append(round(random.uniform(95, 100),2))
         journal.append(journal_row)
-    for i in range(30):
+    for i in range(31):
         table_13.append({'Index': journal[i][0]+1,
                          'Date': journal[i][1],
                          'Balance': f"{journal[i][2]}%",
@@ -296,7 +299,7 @@ for tp in TP:
                          'Name' : "Силантьев В.В."
                          })
     res_1 = f"Обобщенные выводы по результатам проведенной опытной эксплуатации: " \
-            f"\n1. Величина опроса У не менее 95% \n2. Величина баланса распределения ЭЭ не объекте {100-NOT_BALANCE}%"
+            f"\n1. Величина опроса ПУ не менее 95% \n2. Величина баланса распределения ЭЭ не объекте {100-NOT_BALANCE}%"
     res_2 = "\tНебаланс более 12% по объекту обусловлен наличием ПУ с GSM-модемом," \
                                                        " установленных в рамках исполнения договоров М/3634-СЭК от 20.11.2020," \
                                                        " М/3635-СЭК от 20.11.2020, РМР/2097-СЭК 03.06.2021, РМР/2351-СЭК 15.06.2021," \
@@ -343,5 +346,4 @@ for tp in TP:
 
     pdf_merge(f"{PATH_OUT}\ТП-{tp}\\")
     print(f"ТП-{tp}_prd_merge")
-
-print(f"Исполнительная документация по ТП-{tp} сделана")
+print(f"Исполнительная документация по всем ТП сделана")
